@@ -61,3 +61,8 @@ c = np.hstack([a, b, np.nan])
 print(np.where(~np.isnan(c), c, 0))
 print(np.max(np.where(~np.isnan(c), c, 0)))
 print(np.nan / 1000)
+
+from datetime import datetime
+now = datetime.now()
+timelabel = f"{now.year}{now.month:0=2}{now.day:0=2}-{now.hour:0=2}{now.minute:0=2}{now.second:0=2}"
+print(timelabel)

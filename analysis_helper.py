@@ -70,6 +70,11 @@ class AnalysisHelper():
         plt.rcParams["xtick.minor.size"] = 5                 #x軸補助目盛り線の長さ
         plt.rcParams["ytick.minor.size"] = 5                 #y軸補助目盛り線の長さ
 
+    def img_save(self, fig, prefix):
+        now = datetime.now()
+        timelabel = f"{now.year}{now.month:0=2}{now.day:0=2}-{now.hour:0=2}{now.minute:0=2}{now.second:0=2}"
+        fig.savefig("./img/{}_{}.png".format(prefix, timelabel), transparent=True)
+
     def coincidence(self, cwdata1, cwdata2, window = 0.1, const = 0., isRate = False, ADCthreshold = -1):
         """
         コインシデンスの解析。尺取り法で時間差を計算している
@@ -124,18 +129,6 @@ class AnalysisHelper():
         else:
             return np.array(data)
 
-    # def acci_coin(self, cwdata1, cwdata2, window):
-    #     t = window
-    #     r1 = len( cwdata1.data["date"] )/ ( cwdata1.data["date"][-1] - cwdata1.data["date"][0] ).total_seconds()
-    #     r2 = len( cwdata2.data["date"] )/ ( cwdata2.data["date"][-1] - cwdata2.data["date"][0] ).total_seconds()
-    #     sigma_r1 = np.sqrt( len( cwdata1.data["date"] ) ) / ( cwdata1.data["date"][-1] - cwdata1.data["date"][0] ).total_seconds()
-    #     sigma_r2 = np.sqrt( len( cwdata2.data["date"] ) ) / ( cwdata2.data["date"][-1] - cwdata2.data["date"][0] ).total_seconds()
-    #     R = r1 * ( 1 - np.exp(-r2*t) ) + r2 * ( 1 - np.exp(-r1*t) )
-    #     dRdr1 = 1 - np.exp( -r2*t ) + r1 * r2 * np.exp(-r1*t)
-    #     dRdr2 = 1 - np.exp( -r1*t ) + r1 * r2 * np.exp(-r2*t)
-    #     sigma_R = np.sqrt( dRdr1**2 * sigma_r1**2 + dRdr2**2 * sigma_r2**2 )
-    #     return R
-
     def check_order(self, data):
         """
         描画の際の軸の数値を調整するために次数を計算
@@ -182,6 +175,7 @@ class AnalysisHelper():
         ax.yaxis.set_major_formatter(ptick.EngFormatter())
         plt.subplots_adjust(right=0.98, top=0.98)
         plt.legend()
+        self.img_save(fig, "rate")
         plt.show()
 
     def num_of_coincidence(self, cwdata1, cwdata2, const = 0., windows = np.linspace(0, 0.02, 10), cwdata3 = None, cwdata4 = None, label1 = "data1 & data2", label2 = "data3 & data4"):
@@ -218,6 +212,7 @@ class AnalysisHelper():
         ax.set_xlabel(xlabel)
         ax.set_ylabel("Number of Coincidences [counts]")
         plt.subplots_adjust(right=0.98, top=0.98)
+        self.img_save(fig, "num_of_coin")
         plt.show()
 
     def plot(self, keyword = "default", bin_num = 100, bin_width_show = False):
@@ -251,6 +246,7 @@ class AnalysisHelper():
             ax.set_xlabel(xlabel)
             ax.set_ylabel("Number of Events")
             plt.subplots_adjust(right=0.98, top=0.98)
+            self.img_save(fig1, "hist")
             
             # plot w/ summary info
             fig2, (ax1, ax2) = plt.subplots(1, 2, sharey = True, gridspec_kw={'width_ratios': [4, 3]}, figsize=(12,8))
@@ -276,6 +272,7 @@ class AnalysisHelper():
             ax2.tick_params(labelleft=False, left=False)
             ax2.axis('off')
             plt.subplots_adjust(right=0.98, top=0.98, wspace=0)
+            self.img_save(fig2, "hist_info")
         elif keyword == "adc": # plot ADC hist
             fig, ax = plt.subplots(figsize=(8, 8))
             ax.hist(self.data[:, 1], bins = bin_num, range = [0, 1023], alpha = 0.5, label = "data1")
@@ -285,6 +282,7 @@ class AnalysisHelper():
             ax.set_ylabel("Number of Events")
             plt.subplots_adjust(right=0.98, top=0.98)
             plt.legend()
+            self.img_save(fig, "adc")
         elif keyword == "adc_subplot": # plot ADC hist separately
             fig = plt.figure(figsize=(10, 8))
             ax1 = fig.add_subplot(211)
@@ -296,6 +294,7 @@ class AnalysisHelper():
             ax2.set_xlabel("ADC [arb. unit]")
             fig.supylabel("Number of Events")
             plt.subplots_adjust(hspace=0, right=0.98, top=0.98)
+            self.img_save(fig, "adc_subplot")
         elif keyword == "adc_2d": # plot ADC 2d hist
             fig, ax = plt.subplots(figsize=(10, 8))
             hist_data = ax.hist2d( self.data[:, 1], self.data[:, 2], bins = [ 32, 32 ], range = [ [0, 1023], [0, 1023] ] )
@@ -304,6 +303,7 @@ class AnalysisHelper():
             ax.set_ylabel("data2 ADC [arb. unit]")
             ax.set_aspect('equal', adjustable='box')
             plt.subplots_adjust(right=0.98, top=0.98)
+            self.img_save(fig, "adc2d")
         plt.show()
 
     def plot_adc_cut_histo(self, cwdata1, cwdata2, window = 0.1, const = 0., ADCthreshold = -1, bin_num = 50):
@@ -335,6 +335,7 @@ class AnalysisHelper():
         ax.set_ylabel("Number of Events")
         plt.legend(borderaxespad=1, handletextpad = 0.5, handlelength=1., fontsize = 16)
         plt.subplots_adjust(right=0.98, top=0.98)
+        self.img_save(fig, "adc_compare")
         plt.show()
 
     def fit(self, bin_num = 100, range_min = np.nan, range_max = np.nan, isLorentzian = False):
@@ -355,8 +356,10 @@ class AnalysisHelper():
             range_min *= 10**3
             range_max *= 10**3
             xlabel = "Time Difference [ms]"
+            draw_range = self.window*1000
         else:
             xlabel = "Time Difference [s]"
+            draw_range = self.window
 
         # plot hist
         hist_info = ax.hist(data[ (data >= range_min) & ( data <= range_max ) ], bins = bin_num, histtype='step', color='k')
@@ -401,9 +404,11 @@ class AnalysisHelper():
         indices2 = np.where( (fill_x+bin_width/2 >= left) & (fill_x-bin_width/2 <= right) )[0]
         ax.fill_between(fill_x[indices2], np.full_like(fill_x[indices2], result.result.params["c"].value), fill_y[indices2], facecolor='C0', alpha=0.5)
         ax.yaxis.set_major_formatter(ptick.EngFormatter())
+        ax.set_xlim(-1*draw_range, draw_range)
         ax.set_xlabel(xlabel)
         ax.set_ylabel("Number of Events")
         plt.subplots_adjust(right=0.98, top=0.98)
+        self.img_save(fig, "fit")
         plt.show()
 
     def compare(self, cwdata1, cwdata2, window = 0.1, const = 0., bin_num = 100):
@@ -472,6 +477,7 @@ class AnalysisHelper():
         ax1.set_xlabel(xlabel)
         ax1.set_ylabel("Number of Events")
         plt.subplots_adjust(right=0.98, top=0.98)
+        self.img_save(fig1, "compare")
         plt.show()
 
 def cut_data(pathlist, range_min, range_max, save_name = "test"):
@@ -542,22 +548,22 @@ if __name__ == '__main__':
 
     data1 = CWData("data/2024-04-21-23_1.dat")
     data2 = CWData("data/2024-04-21-23_2.dat")
-    # data3 = CWData("data/2024-04-21-23_3.dat")
-    # data4 = CWData("data/2024-04-21-23_4.dat")
+    data3 = CWData("data/2024-04-21-23_3.dat")
+    data4 = CWData("data/2024-04-21-23_4.dat")
     # data1 = CWData("data/2024-05-02-09_1.dat")
     # data2 = CWData("data/2024-05-02-09_2.dat")
 
     coin = AnalysisHelper()
     coin.compare(data1, data2, 1)
-    # coin.num_of_coincidence(data1, data2, 0, np.linspace(0, 5, 10), cwdata3 = data3, cwdata4 = data4)
+    coin.num_of_coincidence(data1, data2, 0, np.linspace(0.01, 0.05, 2), cwdata3 = data3, cwdata4 = data4)
     # coin.num_of_coincidence(data1, data2, 0, np.linspace(0, 5, 5))
-    # coin.rate_plot(data1, data2, 0, np.linspace(0, 5, 5))
+    coin.rate_plot(data1, data2, 0, np.linspace(0.01, 0.1, 5))
 
-    # coin.coincidence(data2, data1, 0.03, 0)
-    # coin.fit()
-    # print(coin.data)
-    # coin.plot(keyword="default", bin_num= 30)
-    # coin.plot(keyword="adc", bin_num= 30)
-    # coin.plot(keyword="adc_subplot", bin_num= 30)
-    # coin.plot(keyword="adc_2d", bin_num= 30)
-    # coin.plot_adc_cut_histo(data2, data1, 0.1, 0, 150)
+    coin.coincidence(data2, data1, 0.03, 0)
+    coin.fit()
+    print(coin.data)
+    coin.plot(keyword="default", bin_num= 30)
+    coin.plot(keyword="adc", bin_num= 30)
+    coin.plot(keyword="adc_subplot", bin_num= 30)
+    coin.plot(keyword="adc_2d", bin_num= 30)
+    coin.plot_adc_cut_histo(data2, data1, 0.1, 0, 150)
