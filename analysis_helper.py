@@ -271,7 +271,7 @@ class AnalysisHelper():
             ]
             table = ax2.table(cellText=table_data, cellLoc='left', rowLoc='center', bbox = [0, 0, 1, 1], colWidths=[0.35, 0.65])
             table.auto_set_font_size(False)
-            table.set_fontsize(18)
+            table.set_fontsize(16)
             ax2.tick_params(labelbottom=True, bottom=False)
             ax2.tick_params(labelleft=False, left=False)
             ax2.axis('off')
