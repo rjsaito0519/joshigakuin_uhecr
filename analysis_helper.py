@@ -29,7 +29,8 @@ class CWData():
             'temp':[]
         }
         self.path = path
-        self.LoadData(path)
+        if path is not None:
+            self.LoadData(path)
     
     def LoadData(self, path):
         df_tsv = pd.read_table(path, header=None)
@@ -405,72 +406,73 @@ class AnalysisHelper():
         plt.subplots_adjust(right=0.98, top=0.98)
         plt.show()
 
-    # def compare(self, cwdata1.data, cwdata2.data, window = 0.1, const = 0., isRate = False, bin_num = 100):
-    #     plt.rcParams['mathtext.fontset'] = 'stix'
-    #     plt.rcParams['font.size'] = 18
-    #     plt.rcParams['axes.linewidth'] = 1.0# 軸の線幅edge linewidth。囲みの太さ
-    #     plt.rcParams['axes.grid'] = True
+    def compare(self, cwdata1, cwdata2, window = 0.1, const = 0., bin_num = 100):
+        # calc. time diff. dist at each data
+        self.plt_setting()
+        new_data1 = CWData(None)
+        new_data2 = CWData(None)
+        for raw_data, new_data in zip([cwdata1.data, cwdata2.data], [new_data1, new_data2]): 
+            diff = []
+            for i in tqdm(range(1, len(raw_data["date"]))):
+                diff.append( (raw_data["date"][i] - raw_data["date"][i-1]).total_seconds() )
 
-    #     self.coincidence( cwdata1.data, cwdata2.data, window, const )
-    #     fig1, ax1 = plt.subplots(figsize=(10, 8))
-    #     ax1.hist(self.data[:, 0], bins = bin_num, histtype='step', color='k', zorder = 2)
-    #     ax1.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-    #     ax1.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-    #     ax1.ticklabel_format(style="sci",  axis="both",scilimits=(0,0))
-    #     ax1.set_xlabel("Time Difference [s]")
-    #     ax1.set_ylabel("Number of Events")
+            fig, ax = plt.subplots(figsize=(8, 8))
+            hist_info = ax.hist(diff, bins = 1000, histtype='step', color='k', range = (0., 15))
+            y = hist_info[0]
+            tmp_x = hist_info[1]
+            roll_x = np.roll(tmp_x, 1)
+            x = (tmp_x/2 + roll_x/2)[1:]
 
-    #     counter = 1
-    #     for raw_data in [cwdata1.data, cwdata2.data]:
-    #         diff = []
-    #         for i in tqdm(range(1, len(raw_data["date"]))):
-    #             diff.append( (raw_data["date"][i] - raw_data["date"][i-1]).total_seconds() )
+            model = lfm.ExponentialModel()
+            params = model.guess(x=x, data=y)
+            result = model.fit(x=x, data=y, params=params, method='leastsq')
+            print(result.fit_report())
 
-    #         fig, ax = plt.subplots(figsize=(10, 8))
-    #         hist_info = ax.hist(diff, bins = 1000, histtype='step', color='k', range = (0., 15))
-    #         y = hist_info[0]
-    #         tmp_x = hist_info[1]
-    #         roll_x = np.roll(tmp_x, 1)
-    #         x = (tmp_x/2 + roll_x/2)[1:]
+            fit_x = np.linspace(np.min(x), np.max(x), 10000)
+            fit_y = result.eval_components(x=fit_x)["exponential"]
+            ax.plot(fit_x, fit_y, color = "C1", ls = "dashed")
+            ax.yaxis.set_major_formatter(ptick.EngFormatter())
+            ax.yaxis.set_major_formatter(ptick.EngFormatter())
+            ax.set_xlabel("Time Difference [s]")
+            ax.set_ylabel("Number of Events")
+            ax.set_yscale("log")
+            fig.show()
 
-    #         model = lfm.ExponentialModel()
-    #         params = model.guess(x=x, data=y)
-    #         result = model.fit(x=x, data=y, params=params, method='leastsq')
-    #         print(result.fit_report())
+            rng = np.random.default_rng()
+            random_diff = rng.exponential(  result.result.params["decay"].value, len(cwdata1.data["date"]))
 
-    #         fit_x = np.linspace(np.min(x), np.max(x), 10000)
-    #         fit_y = result.eval_components(x=fit_x)["exponential"]
-    #         ax.plot(fit_x, fit_y, color = "C1", ls = "dashed")
-    #         ax.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-    #         ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-    #         ax.ticklabel_format(style="sci",  axis="both",scilimits=(0,0))
-    #         ax.set_xlabel("Time Difference [s]")
-    #         ax.set_ylabel("Number of Events")
-    #         ax.set_yscale("log")
-    #         fig.show()
+            hoge_time = datetime.now()
+            tmp_time = hoge_time
 
-    #         random_diff = np.random.exponential(  result.result.params["decay"].value, 10**6)
+            for tmp_diff in random_diff:
+                tmp_time += timedelta(seconds=tmp_diff)
+                new_data.data["date"].append(tmp_time)
+                new_data.data["adc"].append(0)
+            new_data.path = "hoge"
 
-    #         tmp_data = {"date":[], "adc":[]}
-    #         tmp_time = datetime(2022, 12, 8, 0, 0, 0)
+        # calc coincidence
+        data1 = self.coincidence( cwdata1, cwdata2, window, const )
+        data2 = self.coincidence( new_data1, new_data2, window, 0. )
 
-    #         for tmp_diff in random_diff:
-    #             tmp_time += timedelta(seconds=tmp_diff)
-    #             tmp_data["date"].append(tmp_time)
-    #             tmp_data["adc"].append(0)
-    #             if (tmp_time - datetime(2022, 12, 8, 0, 0, 0)).total_seconds() > self.time:
-    #                 print("berak")
-    #                 break
-
-    #         if counter == 1:
-    #             new_data1 = tmp_data
-    #             counter += 1
-    #         else:
-    #             new_data2 = tmp_data
-
-    #     self.coincidence( new_data1, new_data2, window, 0. )
-    #     ax1.hist(self.data[:, 0], bins = bin_num, zorder = 1, alpha = 0.5, color = "C0")
-    #     plt.show()
+        # set xaxis unit
+        xorder = self.check_order(np.hstack([data1[:, 0], data2[:, 0]])) // 3
+        if xorder <= -1:
+            data1[:, 0] *= 10**3
+            data2[:, 0] *= 10**3
+            xlabel = "Time Difference [ms]"
+        else:
+            xlabel = "Time Difference [s]"
+        
+        # plot hist
+        
+        fig1, ax1 = plt.subplots(figsize=(8, 8))
+        histo_info = ax1.hist(data1[:, 0], bins = bin_num, histtype='step', color='k', zorder = 2)
+        ax1.hist(data2[:, 0], bins = bin_num, zorder = 1, range = [ histo_info[1][0], histo_info[1][-1] ], alpha = 0.5, color = "C0")
+        ax1.yaxis.set_major_formatter(ptick.EngFormatter())
+        ax1.set_xlabel(xlabel)
+        ax1.set_ylabel("Number of Events")
+        plt.subplots_adjust(right=0.98, top=0.98)
+        plt.show()
 
 def cut_data(pathlist, range_min, range_max, save_name = "test"):
     data = []
@@ -546,6 +548,7 @@ if __name__ == '__main__':
     # data2 = CWData("data/2024-05-02-09_2.dat")
 
     coin = AnalysisHelper()
+    coin.compare(data1, data2, 1)
     # coin.num_of_coincidence(data1, data2, 0, np.linspace(0, 5, 10), cwdata3 = data3, cwdata4 = data4)
     # coin.num_of_coincidence(data1, data2, 0, np.linspace(0, 5, 5))
     # coin.rate_plot(data1, data2, 0, np.linspace(0, 5, 5))

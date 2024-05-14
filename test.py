@@ -30,13 +30,13 @@ class CWData():
         self.data["adc"]   = tmp_data[:, 3]
         self.data["temp"]  = tmp_data[:, 6]
 
-data = CWData("data/2024-04-23_0.dat")
+# data = CWData("data/2024-04-23_0.dat")
 
 def count_digit(value):
     return sum(c.isdigit() for c in str(value))
 
 rng = np.random.default_rng()
-print(rng)
+print(rng.exponential(5))
 for _ in range(10):
     n = rng.random()*10**(_)
     print(n)
