@@ -22,7 +22,7 @@ else:
 # | Cosmic Watchのデータクラス |
 # +---------------------------+
 class CWData():
-    def __init__(self, path):
+    def __init__(self, path = None):
         self.data ={
             'event':[],
             'date':[],
@@ -539,8 +539,17 @@ def cut_timing_check(path):
     fig.update_layout(margin=dict(t=15, b=20, l=25, r=25))
     fig.show()
 
-def data_check(path):
-    data = CWData(path)
+def data_check(path, ADCthreshold = -1):
+    # prepare w/ or w/o ADC cut data
+    if ADCthreshold == -1:
+        data = CWData(path)
+    else:
+        data = CWData()
+        tmp_data = CWData(path)
+        indices = [ i for i in range(len(tmp_data.data["adc"])) if tmp_data.data["adc"][i] > ADCthreshold ]
+        data.data["event"] = [ tmp_data.data["event"][i] for i in indices ]
+        data.data["date"]  = [ tmp_data.data["date"][i] for i in indices ]
+        data.data["adc"]   = [ tmp_data.data["adc"][i] for i in indices ]
 
     trace_event = go.Scatter(
         x = data.data["date"],
@@ -552,15 +561,22 @@ def data_check(path):
         ),
     )
     trace_adc = go.Histogram( x=data.data["adc"] )
-    trace_table = go.Table(
-        header=dict(values=['', 'value']),
-        cells=dict( values=[
-            ["ファイル名", "測定時間"],
-            [os.path.basename(path), (data.data["date"][-1] - data.data["date"][0]).total_seconds()]
-        ])
-    )
+    
+    # tot_time = (data.data["date"][-1] - data.data["date"][0]).total_seconds()
+    tot_time = (max(data.data["date"]) - min(data.data["date"])).total_seconds()
+    tot_num  = len(data.data["event"])
+    time_diff = np.array([(data.data["date"][i] - data.data["date"][i-1]).total_seconds() for i in range(1, len(data.data["date"]))])
+    n_gap = len( np.where( time_diff > 60 )[0] )
 
-    # fig = go.Figure(layout=layout).set_subplots(rows=1, cols=2)
+    trace_table = go.Table(
+        # header=dict(values=['データ名', '値'], align=['left', 'center'], height=50),
+        cells=dict( values=[
+            ["ファイル名", "データ数", "測定時間 [s]",  "測定時間 [min]", "測定時間 [hour]", "到来頻度 [/min]", "1分以上検出されない", "ADC平均値", "ADC閾値"],
+            [os.path.basename(path), tot_num, "{:.0f}".format(tot_time), "{:.1f}".format(tot_time/60), "{:.1f}".format(tot_time/3600), "{:.3f}".format(tot_num/(tot_time/60)), n_gap, "{:.1f}".format(statistics.mean(data.data["adc"])), ADCthreshold ]],
+            align=['left', 'center'],
+            height=40
+        )
+    )
 
     fig = make_subplots(
         rows=2, cols=2,
@@ -578,11 +594,11 @@ def data_check(path):
     fig.update_layout(
         # title = "check",
         font = dict( size = 18 ),
-        # margin=dict(t=20, b=20, l=25, r=25),
-        xaxis1=dict(title='ADC'), yaxis1=dict(title='Counts'),
+        margin=dict(t=20, b=20, l=5, r=5),
+        xaxis1=dict(title='ADC', range=(0, 1023)), yaxis1=dict(title='Counts'),
         xaxis2=dict(title='Date'), yaxis2=dict(title='Number of events'),
         showlegend=False,
-        # width=1000, height=800,
+        width=1200, height=800,
     )
     fig.show()
 
