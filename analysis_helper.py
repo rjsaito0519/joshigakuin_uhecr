@@ -569,6 +569,7 @@ def data_check(path, ADCthreshold = -1):
     n_gap = len( np.where( time_diff > 60 )[0] )
 
     trace_table = go.Table(
+        columnwidth =  [0.4, 0.6],
         # header=dict(values=['データ名', '値'], align=['left', 'center'], height=50),
         cells=dict( values=[
             ["ファイル名", "データ数", "測定時間 [s]",  "測定時間 [min]", "測定時間 [hour]", "到来頻度 [/min]", "1分以上検出されない", "ADC平均値", "ADC閾値"],
@@ -582,7 +583,7 @@ def data_check(path, ADCthreshold = -1):
         rows=2, cols=2,
         # subplot_titles=["1", "2", "3"],
         vertical_spacing=0.15,
-        horizontal_spacing=0.05,
+        horizontal_spacing=0.01,
         specs=[[{}, {"rowspan": 2, "type": "table"}], [{}, None]],
     )
 
