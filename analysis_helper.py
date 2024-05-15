@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ptick
 import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 from datetime import date, timedelta, datetime
 import statistics
 import csv
@@ -501,7 +502,7 @@ def cut_data(pathlist, range_min, range_max, save_name = "test"):
             s = '\t'.join([str(i)] + row[1:]) + "\n"
             f.write(s)
 
-def check(path):
+def cut_timing_check(path):
     data = [[], []]
     if type(path) == list:
         for tmp_path in path:
@@ -512,11 +513,6 @@ def check(path):
         tmp_data = CWData(path)
         data[0].extend( tmp_data.data["date"] )
         data[1].extend( tmp_data.data["event"] )
-
-    plt.figure(figsize=(8, 6))
-    plt.plot( data[0], data[1], ".")
-    plt.xticks(rotation =45)
-    plt.show()
 
     trace = go.Scatter(
         x = data[0],
@@ -543,27 +539,76 @@ def check(path):
     fig.update_layout(margin=dict(t=15, b=20, l=25, r=25))
     fig.show()
 
+def data_check(path):
+    data = CWData(path)
+
+    trace_event = go.Scatter(
+        x = data.data["date"],
+        y = data.data["event"],
+        mode = 'lines',
+        marker= dict(
+            color= "blue",
+            opacity= 1.0
+        ),
+    )
+    trace_adc = go.Histogram( x=data.data["adc"] )
+    trace_table = go.Table(
+        header=dict(values=['', 'value']),
+        cells=dict( values=[
+            ["ファイル名", "測定時間"],
+            [os.path.basename(path), (data.data["date"][-1] - data.data["date"][0]).total_seconds()]
+        ])
+    )
+
+    # fig = go.Figure(layout=layout).set_subplots(rows=1, cols=2)
+
+    fig = make_subplots(
+        rows=2, cols=2,
+        # subplot_titles=["1", "2", "3"],
+        vertical_spacing=0.15,
+        horizontal_spacing=0.05,
+        specs=[[{}, {"rowspan": 2, "type": "table"}], [{}, None]],
+    )
+
+    fig.append_trace(trace_adc,   row=1, col=1)
+    fig.append_trace(trace_event, row=2, col=1)
+    fig.append_trace(trace_table, row=1, col=2)
+    # fig.update_traces(cells_font=dict(size = 18), row=1, col=2)
+    
+    fig.update_layout(
+        # title = "check",
+        font = dict( size = 18 ),
+        # margin=dict(t=20, b=20, l=25, r=25),
+        xaxis1=dict(title='ADC'), yaxis1=dict(title='Counts'),
+        xaxis2=dict(title='Date'), yaxis2=dict(title='Number of events'),
+        showlegend=False,
+        # width=1000, height=800,
+    )
+    fig.show()
+
 if __name__ == '__main__':
     print()
 
-    data1 = CWData("data/2024-04-21-23_1.dat")
-    data2 = CWData("data/2024-04-21-23_2.dat")
-    data3 = CWData("data/2024-04-21-23_3.dat")
-    data4 = CWData("data/2024-04-21-23_4.dat")
+    # data1 = CWData("data/2024-04-21-23_1.dat")
+    # data2 = CWData("data/2024-04-21-23_2.dat")
+    # data3 = CWData("data/2024-04-21-23_3.dat")
+    # data4 = CWData("data/2024-04-21-23_4.dat")
     # data1 = CWData("data/2024-05-02-09_1.dat")
     # data2 = CWData("data/2024-05-02-09_2.dat")
 
-    coin = AnalysisHelper()
-    coin.compare(data1, data2, 1)
-    coin.num_of_coincidence(data1, data2, 0, np.linspace(0.01, 0.05, 2), cwdata3 = data3, cwdata4 = data4)
-    # coin.num_of_coincidence(data1, data2, 0, np.linspace(0, 5, 5))
-    coin.rate_plot(data1, data2, 0, np.linspace(0.01, 0.1, 5))
+    # coin = AnalysisHelper()
+    # coin.compare(data1, data2, 1)
+    # coin.num_of_coincidence(data1, data2, 0, np.linspace(0.01, 0.05, 2), cwdata3 = data3, cwdata4 = data4)
+    # # coin.num_of_coincidence(data1, data2, 0, np.linspace(0, 5, 5))
+    # coin.rate_plot(data1, data2, 0, np.linspace(0.01, 0.1, 5))
 
-    coin.coincidence(data2, data1, 0.03, 0)
-    coin.fit()
-    print(coin.data)
-    coin.plot(keyword="default", bin_num= 30)
-    coin.plot(keyword="adc", bin_num= 30)
-    coin.plot(keyword="adc_subplot", bin_num= 30)
-    coin.plot(keyword="adc_2d", bin_num= 30)
-    coin.plot_adc_cut_histo(data2, data1, 0.1, 0, 150)
+    # coin.coincidence(data2, data1, 0.03, 0)
+    # coin.fit()
+    # print(coin.data)
+    # coin.plot(keyword="default", bin_num= 30)
+    # coin.plot(keyword="adc", bin_num= 30)
+    # coin.plot(keyword="adc_subplot", bin_num= 30)
+    # coin.plot(keyword="adc_2d", bin_num= 30)
+    # coin.plot_adc_cut_histo(data2, data1, 0.1, 0, 150)
+
+    data_check("data/2024-04-21-23_1.dat")
