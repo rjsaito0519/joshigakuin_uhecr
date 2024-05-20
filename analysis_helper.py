@@ -224,6 +224,7 @@ class AnalysisHelper():
         if keyword == "default":
             # set xaxis unit
             xorder = self.check_order(self.data[:, 0]) // 3
+            data = self.data[:, 0]
             if xorder <= -1:
                 data = self.data[:, 0]*10**3
                 xlabel = "Time Difference [ms]"
